@@ -1,0 +1,83 @@
+def generate_x(x):
+    res=[]
+    for k in range(10):
+        res.append(x[k:k+10])
+    return res
+def generate_y(x):
+    res=[]
+    for k in range(10):
+        res.append([x[k+10]])
+    return res
+
+
+import numpy
+import random
+import math
+
+def fourrier(X):
+    return numpy.array([numpy.fft.fft(L) for L in X])
+
+def ifourrier(X):
+    return numpy.array([numpy.fft.ifft(L) for L in X])
+
+class stest():
+    def generate_data(N,M):
+        return numpy.array([[random.uniform(0,1) for k in range(N)] for i in range(M)])
+class test():
+    def generate_matrix(N,M):
+        return numpy.array([[random.uniform(-10,10) for k in range(N)] for i in range(M)])
+
+class param():
+    N=10
+    M=10
+    alpha=0.01
+    out=1
+class f():
+    activation=lambda x: 1/(1+numpy.exp(-x))
+    derivative=lambda x:1/(1+numpy.exp(-x))*(1-1/(1+numpy.exp(-x)))
+    #activation=lambda x: math.exp(-x**2)
+    #derivative=lambda x: -2*x*math.exp(-x**2)
+class network():
+    def __init__(self,L,l):
+        self.LAYERS=L
+        self.lambdaparam=l
+        self.features=param.N
+        self.samples=param.M
+        self.out=param.out
+        self.THETA0=test.generate_matrix(self.LAYERS,self.features)
+        self.THETA1=test.generate_matrix(self.out,self.LAYERS)
+    def forward(self,DATA):
+        X0=fourrier(DATA)
+        X1=ifourrier(numpy.vectorize(f.activation)(numpy.matmul(X0,self.THETA0)))
+        X2=numpy.matmul(X1,self.THETA1)
+        return X2
+    def fcompute(self,DATA):
+        X0=fourrier(DATA)
+        H1=numpy.matmul(X0,self.THETA0)
+        X1=ifourrier(numpy.vectorize(f.activation)(H1))
+        X2=numpy.matmul(X1,self.THETA1)
+        return H1,X1,X2
+    def backprop(self,H1,X1,X2,Y):
+        E2=(X2-Y)
+        E1=numpy.multiply(numpy.vectorize(f.derivative)(H1),numpy.transpose(numpy.matmul(self.THETA1,numpy.transpose(E2))))
+        return E1,E2
+    def run(self,DATA,Y):
+        H1,X1,X2=self.fcompute(DATA)
+        E1,E2=self.backprop(H1,X1,X2,Y)
+        self.THETA0=(1-param.alpha*self.lambdaparam)*self.THETA0-param.alpha*numpy.matmul(numpy.transpose(fourrier(DATA)),E1)
+        self.THETA1=(1-param.alpha*self.lambdaparam)*self.THETA1-param.alpha*numpy.matmul(numpy.transpose(X1),E2)
+        print(sum(abs(self.forward(DATA)-Y)))
+
+
+#x=list([1 for i in range(20)])
+def predict(x):
+    X=numpy.array(generate_x(x))
+    Y=numpy.array(generate_y(x))
+
+# X=stest.generate_data(10,10)
+# Y=stest.generate_data(1,10)
+
+    MODEL=network(1000,0)
+    for i in range(100):
+        MODEL.run(X,Y)
+    return round(numpy.real(MODEL.forward(numpy.array([x[10:]])))[0][0])
